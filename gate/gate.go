@@ -1,31 +1,32 @@
 package gate
 
 import (
-	"github.com/name5566/leaf/chanrpc"
-	"github.com/name5566/leaf/log"
-	"github.com/name5566/leaf/network"
 	"net"
 	"reflect"
 	"time"
+
+	"github.com/name5566/leaf/chanrpc"
+	"github.com/name5566/leaf/log"
+	"github.com/name5566/leaf/network"
 )
 
 type Gate struct {
-	MaxConnNum      int
-	PendingWriteNum int
-	MaxMsgLen       uint32
+	MaxConnNum      int    // 传递给*network.TCPServer.MaxConnNum
+	PendingWriteNum int    // 传递给*network.TCPServer.PendingWriteNum
+	MaxMsgLen       uint32 // 传递给*network.TCPServer.MaxMsgLen
 	Processor       network.Processor
 	AgentChanRPC    *chanrpc.Server
 
 	// websocket
-	WSAddr      string
+	WSAddr      string // "127.0.0.1:3653"
 	HTTPTimeout time.Duration
 	CertFile    string
 	KeyFile     string
 
 	// tcp
-	TCPAddr      string
-	LenMsgLen    int
-	LittleEndian bool
+	TCPAddr      string // TCP连接地址"127.0.0.1:3563"
+	LenMsgLen    int    // 传递给*network.TCPServer.LenMsgLen
+	LittleEndian bool   // 传递给*network.TCPServer.LittleEndian
 }
 
 func (gate *Gate) Run(closeSig chan bool) {
@@ -84,14 +85,14 @@ func (gate *Gate) Run(closeSig chan bool) {
 func (gate *Gate) OnDestroy() {}
 
 type agent struct {
-	conn     network.Conn
-	gate     *Gate
+	conn     network.Conn // *network.TCPConn对象
+	gate     *Gate        // 关联的*gate.Gate对象
 	userData interface{}
 }
 
 func (a *agent) Run() {
 	for {
-		data, err := a.conn.ReadMsg()
+		data, err := a.conn.ReadMsg() // 调用*network.TCPConn.ReadMsg()读取经过msgParser解析后的数据
 		if err != nil {
 			log.Debug("read message: %v", err)
 			break

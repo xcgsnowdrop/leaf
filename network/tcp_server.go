@@ -1,28 +1,30 @@
 package network
 
 import (
-	"github.com/name5566/leaf/log"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/name5566/leaf/log"
 )
 
+// 管理底层连接net.Conn，为每一个连接创建一个agent，并在go协程中运行agent.Run()
 type TCPServer struct {
-	Addr            string
-	MaxConnNum      int
-	PendingWriteNum int
-	NewAgent        func(*TCPConn) Agent
-	ln              net.Listener
-	conns           ConnSet
-	mutexConns      sync.Mutex
+	Addr            string               // 连接地址
+	MaxConnNum      int                  // 允许最大连接数
+	PendingWriteNum int                  // 传递给*network.TCPConn用
+	NewAgent        func(*TCPConn) Agent // 用来新建Agent的方法
+	ln              net.Listener         // 监听器对象
+	conns           ConnSet              // 连接池，map结构：ConnSet map[net.Conn]struct{}，存放*TCPServer.ln接受到的连接
+	mutexConns      sync.Mutex           // 连接池锁
 	wgLn            sync.WaitGroup
 	wgConns         sync.WaitGroup
 
 	// msg parser
-	LenMsgLen    int
-	MinMsgLen    uint32
-	MaxMsgLen    uint32
-	LittleEndian bool
+	LenMsgLen    int    // MsgParser属性
+	MinMsgLen    uint32 // MsgParser属性
+	MaxMsgLen    uint32 // MsgParser属性
+	LittleEndian bool   // MsgParser属性
 	msgParser    *MsgParser
 }
 
@@ -37,14 +39,17 @@ func (server *TCPServer) init() {
 		log.Fatal("%v", err)
 	}
 
+	// 设置默认MaxConnNum
 	if server.MaxConnNum <= 0 {
 		server.MaxConnNum = 100
 		log.Release("invalid MaxConnNum, reset to %v", server.MaxConnNum)
 	}
+	// 设置默认PendingWriteNum
 	if server.PendingWriteNum <= 0 {
 		server.PendingWriteNum = 100
 		log.Release("invalid PendingWriteNum, reset to %v", server.PendingWriteNum)
 	}
+	// *TCPServer必须要有定义NewAgent方法
 	if server.NewAgent == nil {
 		log.Fatal("NewAgent must not be nil")
 	}
@@ -59,6 +64,7 @@ func (server *TCPServer) init() {
 	server.msgParser = msgParser
 }
 
+// 管理底层连接net.Conn，为每一个连接创建一个agent，并在go协程中运行agent.Run()
 func (server *TCPServer) run() {
 	server.wgLn.Add(1)
 	defer server.wgLn.Done()
