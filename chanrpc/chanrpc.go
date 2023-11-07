@@ -3,13 +3,15 @@ package chanrpc
 import (
 	"errors"
 	"fmt"
+	"runtime"
+
 	"github.com/name5566/leaf/conf"
 	"github.com/name5566/leaf/log"
-	"runtime"
 )
 
 // one server per goroutine (goroutine not safe)
 // one client per goroutine (goroutine not safe)
+// 包含一组函数映射[id为消息类型，值为该消息的处理函数]
 type Server struct {
 	// id -> function
 	//
@@ -64,6 +66,7 @@ func assert(i interface{}) []interface{} {
 }
 
 // you must call the function before calling Open and Go
+// 为每个消息类型，注册该消息的处理函数，id为消息类型，例如：*server/msg.Hello，f为该消息的处理函数
 func (s *Server) Register(id interface{}, f interface{}) {
 	switch f.(type) {
 	case func([]interface{}):
@@ -80,6 +83,7 @@ func (s *Server) Register(id interface{}, f interface{}) {
 	s.functions[id] = f
 }
 
+// 处理消息处理函数调用后的返回值，将返回值发送到*chanrpc.CallInfo.chanRet通道
 func (s *Server) ret(ci *CallInfo, ri *RetInfo) (err error) {
 	if ci.chanRet == nil {
 		return
@@ -96,6 +100,7 @@ func (s *Server) ret(ci *CallInfo, ri *RetInfo) (err error) {
 	return
 }
 
+// 在此处实际调用消息处理函数
 func (s *Server) exec(ci *CallInfo) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -113,13 +118,13 @@ func (s *Server) exec(ci *CallInfo) (err error) {
 
 	// execute
 	switch ci.f.(type) {
-	case func([]interface{}):
+	case func([]interface{}): // 不带返回值的消息处理函数
 		ci.f.(func([]interface{}))(ci.args)
 		return s.ret(ci, &RetInfo{})
-	case func([]interface{}) interface{}:
+	case func([]interface{}) interface{}: // 带一个返回值的消息处理函数
 		ret := ci.f.(func([]interface{}) interface{})(ci.args)
 		return s.ret(ci, &RetInfo{ret: ret})
-	case func([]interface{}) []interface{}:
+	case func([]interface{}) []interface{}: // 带一组返回值的消息处理函数
 		ret := ci.f.(func([]interface{}) []interface{})(ci.args)
 		return s.ret(ci, &RetInfo{ret: ret})
 	}
@@ -135,6 +140,8 @@ func (s *Server) Exec(ci *CallInfo) {
 }
 
 // goroutine safe
+// Processor的Route()方法会调用该方法
+// 查找消息注册的处理函数，并创建*chanrpc.CallInfo对象，发送到*chanrpc.Server.ChanCall缓冲通道
 func (s *Server) Go(id interface{}, args ...interface{}) {
 	f := s.functions[id]
 	if f == nil {
@@ -145,6 +152,8 @@ func (s *Server) Go(id interface{}, args ...interface{}) {
 		recover()
 	}()
 
+	// Go方法创建的*chanrpc.CallInfo对象没有设置chanRet属性，故而仅仅适合没有返回值的消息处理函数调用
+	// s.ChanCall通道最终由*module.Skeleton.Run()消费，最终会从该通道接收数据再调用*chanrpc.Server.Exec()执行具体的消息处理函数
 	s.ChanCall <- &CallInfo{
 		f:    f,
 		args: args,
@@ -194,6 +203,8 @@ func (c *Client) Attach(s *Server) {
 	c.s = s
 }
 
+// call()实参传入的*chanrpc.CallInfo对象应该要设置chanRet属性，否则用Go()方法即可
+// call()作为包内私有方法，实际由Call0(),Call1(),CallN(),asynCall()[该私有方法有公开方法AsynCall()调用]等调用
 func (c *Client) call(ci *CallInfo, block bool) (err error) {
 	defer func() {
 		if r := recover(); r != nil {

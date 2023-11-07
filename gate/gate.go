@@ -92,7 +92,7 @@ type agent struct {
 
 func (a *agent) Run() {
 	for {
-		data, err := a.conn.ReadMsg() // 调用*network.TCPConn.ReadMsg()读取经过msgParser解析后的数据
+		data, err := a.conn.ReadMsg() // 无限循环调用*network.TCPConn.ReadMsg()读取经过msgParser解析后的数据
 		if err != nil {
 			log.Debug("read message: %v", err)
 			break

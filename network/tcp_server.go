@@ -8,7 +8,7 @@ import (
 	"github.com/name5566/leaf/log"
 )
 
-// 管理底层连接net.Conn，为每一个连接创建一个agent，并在go协程中运行agent.Run()
+// 负责监听本地网络地址，并管理底层连接net.Conn，为每一个连接创建一个agent，并在go协程中运行agent.Run()
 type TCPServer struct {
 	Addr            string               // 连接地址
 	MaxConnNum      int                  // 允许最大连接数

@@ -1,11 +1,12 @@
 package module
 
 import (
+	"time"
+
 	"github.com/name5566/leaf/chanrpc"
 	"github.com/name5566/leaf/console"
-	"github.com/name5566/leaf/go"
+	g "github.com/name5566/leaf/go"
 	"github.com/name5566/leaf/timer"
-	"time"
 )
 
 type Skeleton struct {
@@ -108,6 +109,7 @@ func (s *Skeleton) AsynCall(server *chanrpc.Server, id interface{}, args ...inte
 	s.client.AsynCall(id, args...)
 }
 
+// 实际调用*chanrpc.Server.Register()
 func (s *Skeleton) RegisterChanRPC(id interface{}, f interface{}) {
 	if s.ChanRPCServer == nil {
 		panic("invalid ChanRPCServer")
