@@ -13,11 +13,11 @@ type Skeleton struct {
 	GoLen              int
 	TimerDispatcherLen int
 	AsynCallLen        int
-	ChanRPCServer      *chanrpc.Server
+	ChanRPCServer      *chanrpc.Server // game模块会初始化ChanRPCServer
 	g                  *g.Go
 	dispatcher         *timer.Dispatcher
 	client             *chanrpc.Client
-	server             *chanrpc.Server
+	server             *chanrpc.Server // *Skeleton.server指向*Skeleton.ChanRPCServer
 	commandServer      *chanrpc.Server
 }
 

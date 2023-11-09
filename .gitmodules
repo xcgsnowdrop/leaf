@@ -1,3 +1,6 @@
 [submodule "submodules/leafserver"]
 	path = submodules/leafserver
 	url = git@github.com:xcgsnowdrop/leafserver.git
+[submodule "submodules/unityLeafServer"]
+	path = submodules/unityLeafServer
+	url = git@github.com:xcgsnowdrop/UnitySocketProtobuf3Demo.git
